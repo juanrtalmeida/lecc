@@ -1,4 +1,6 @@
 import type { ReactNode } from 'react';
+// ReactNode mantido para futura expansão (ícones, etc.).
+void (null as unknown as ReactNode);
 
 type Variant = 'response' | 'reinforcement' | 'stimulus' | 'state' | 'other';
 type Style = 'filled' | 'soft' | 'outline';

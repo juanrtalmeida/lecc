@@ -11,7 +11,6 @@ import {
   EditDefinitionsButton,
   SessionSelector,
   SingleEventAnalysis,
-  LinearRegressionPanel,
 } from '@/components';
 import { sliceAnalysis, summarizeSessions } from '@/analysis';
 

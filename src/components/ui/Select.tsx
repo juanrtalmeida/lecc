@@ -1,4 +1,4 @@
-import type { SelectHTMLAttributes, ReactNode } from 'react';
+import type { SelectHTMLAttributes } from 'react';
 
 type Option = { value: string; label: string };
 
