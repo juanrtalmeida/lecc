@@ -1,0 +1,95 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Notion-inspired: clean white surface, subtle borders, low chroma.
+   Texto principal: slate-800 (não preto puro) — mais confortável e moderno. */
+
+@layer base {
+  :root {
+    color-scheme: light;
+  }
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+  body {
+    background-color: #ffffff;
+    color: #1f2937; /* slate-800-ish */
+    font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* Subtle scrollbars (webkit). */
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: #e5e7eb; /* gray-200 */
+    border-radius: 8px;
+    border: 2px solid #ffffff;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: #d1d5db; /* gray-300 */
+  }
+}
+
+@layer components {
+  /* Aqui os tokens do tailwind.config.js já são claros (bg, line, brand…).
+     Então os padrões abaixo renderizam corretamente contra um body branco. */
+
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 px-3.5 py-2 rounded-lg
+           text-sm font-medium border border-line bg-bg-elevated
+           text-slate-700 hover:bg-bg-subtle transition-colors
+           focus:outline-none focus:ring-2 focus:ring-brand/30 focus:ring-offset-1
+           disabled:opacity-40 disabled:cursor-not-allowed;
+  }
+  .btn-primary {
+    @apply btn bg-brand border-brand text-white hover:bg-brand-deep shadow-glow;
+  }
+  .btn-ghost {
+    @apply btn border-transparent bg-transparent hover:bg-bg-subtle;
+  }
+  .btn-danger {
+    @apply btn bg-red-600 border-red-600 text-white hover:bg-red-700;
+  }
+
+  .input {
+    @apply w-full px-3 py-2 rounded-lg bg-bg-panel border border-line text-slate-800
+           placeholder:text-slate-400 focus:outline-none focus:border-brand
+           focus:ring-2 focus:ring-brand/20 transition;
+  }
+
+  .card {
+    @apply bg-bg-panel border border-line rounded-2xl;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+  }
+
+  .badge {
+    @apply inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs;
+  }
+  .chip {
+    @apply inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs border;
+  }
+  .label {
+    @apply block text-xs uppercase tracking-wider text-slate-500 mb-1;
+  }
+
+  /* Tipografia utilitária — usada em alguns componentes (ex: StatCard). */
+  .heading {
+    @apply text-slate-900;
+  }
+  .body {
+    @apply text-slate-700;
+  }
+  .caption {
+    @apply text-xs text-slate-500;
+  }
+}
