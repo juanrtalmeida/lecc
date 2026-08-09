@@ -120,6 +120,65 @@ export async function exportAnalysisXlsx(analysis: Analysis): Promise<Blob> {
     });
   }
 
+  // Sheet 5 — Regressions (uma linha por coeficiente, com as colunas do modelo repetidas)
+  const regSheet = wb.addWorksheet('Regressions');
+  regSheet.columns = [
+    { header: 'Model', key: 'model', width: 24 },
+    { header: 'Session', key: 'session', width: 10 },
+    { header: 'Bin (s)', key: 'bin', width: 10 },
+    { header: 'Y', key: 'y', width: 16 },
+    { header: 'Predictors', key: 'predictors', width: 26 },
+    { header: 'n', key: 'n', width: 6 },
+    { header: 'R²', key: 'r2', width: 10 },
+    { header: 'Adj. R²', key: 'adjR2', width: 10 },
+    { header: 'F', key: 'f', width: 10 },
+    { header: 'p (F)', key: 'fp', width: 12 },
+    { header: 'Residual SE', key: 'sigma', width: 12 },
+    { header: 'Term', key: 'term', width: 24 },
+    { header: 'Beta', key: 'beta', width: 12 },
+    { header: 'Std. Error', key: 'se', width: 12 },
+    { header: 't', key: 't', width: 10 },
+    { header: 'p', key: 'p', width: 12 },
+    { header: 'CI 95% low', key: 'ciLow', width: 12 },
+    { header: 'CI 95% high', key: 'ciHigh', width: 12 },
+  ];
+  for (const m of analysis.regressions ?? []) {
+    const base = {
+      model: m.name,
+      session: m.session,
+      bin: m.binSeconds,
+      y: m.yVariable,
+      predictors: m.xVariables.join(' + '),
+    };
+    const r = m.result;
+    if (!r?.ok || !r.coefficients?.length) {
+      // Sem ajuste: registra o motivo em vez de omitir o modelo do relatório.
+      regSheet.addRow({ ...base, term: r?.reason ?? 'sem resultado calculado' });
+      continue;
+    }
+    const summary = {
+      n: r.n,
+      r2: r.r2,
+      adjR2: r.adjR2,
+      f: r.f,
+      fp: r.fPValue,
+      sigma: r.residualStdError,
+    };
+    for (const c of r.coefficients) {
+      regSheet.addRow({
+        ...base,
+        ...summary,
+        term: c.label,
+        beta: c.beta,
+        se: c.stdError,
+        t: c.t,
+        p: c.pValue,
+        ciLow: c.ciLow,
+        ciHigh: c.ciHigh,
+      });
+    }
+  }
+
   const buf = await wb.xlsx.writeBuffer();
   return new Blob([buf], {
     type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',

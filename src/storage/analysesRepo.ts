@@ -47,7 +47,10 @@ export function listAnalyses(): AnalysisListItem[] {
 }
 
 export function getAnalysis(id: string): Analysis | undefined {
-  return readKey<Analysis>(ANALYSIS_KEY(id));
+  const a = readKey<Analysis>(ANALYSIS_KEY(id));
+  if (!a) return undefined;
+  // Normaliza campos adicionados depois: análises gravadas antes não os têm.
+  return { ...a, regressions: a.regressions ?? [] };
 }
 
 export function saveAnalysis(analysis: Analysis): void {
@@ -110,6 +113,7 @@ export function createAnalysisFromImport(args: {
     events: args.events,
     eventDefinitions: {},
     customAnalysis: [],
+    regressions: [],
   };
 }
 

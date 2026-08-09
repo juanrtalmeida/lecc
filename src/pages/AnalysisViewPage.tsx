@@ -11,6 +11,7 @@ import {
   EditDefinitionsButton,
   SessionSelector,
   SingleEventAnalysis,
+  RegressionPanel,
 } from '@/components';
 import { sliceAnalysis, summarizeSessions } from '@/analysis';
 
@@ -119,6 +120,7 @@ export function AnalysisViewPage() {
             onPointClick={(i) => setHighlightIndex(i === highlightIndex ? null : i)}
           />
           <CustomAnalysesPanel analysis={sessionAnalysis} />
+          <RegressionPanel analysis={sessionAnalysis} session={session} />
           <ExportPanel analysis={sessionAnalysis} />
         </>
       )}

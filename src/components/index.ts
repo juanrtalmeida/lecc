@@ -14,5 +14,5 @@ export { EventIdentificationForm } from './EventIdentificationForm';
 export { EditDefinitionsButton } from './EditDefinitionsButton';
 export { SessionSelector } from './SessionSelector';
 export { SingleEventAnalysis } from './SingleEventAnalysis';
-export { LinearRegressionChart } from './LinearRegressionChart';
-export { LinearRegressionPanel } from './LinearRegressionPanel';
+export { RegressionScatter } from './RegressionScatter';
+export { RegressionPanel } from './RegressionPanel';

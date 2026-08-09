@@ -21,4 +21,7 @@ export {
   type CustomAnalysisResult,
   type EventSelector,
   type DirectionAfter,
+  type RegressionModel,
+  type RegressionSummary,
+  type RegressionCoefficient,
 } from './analysis';

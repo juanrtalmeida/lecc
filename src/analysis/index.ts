@@ -24,9 +24,29 @@ export {
   type SessionMeta,
 } from './sessions';
 export {
-  linearFit,
-  predictLine,
-  residualStd,
-  type LinearFit,
-  type PredictionPoint,
+  fitOls,
+  linePoints,
+  INTERCEPT_ID,
+  type CoefficientStat,
+  type OlsFit,
+  type OlsFailure,
+  type OlsResult,
 } from './regression';
+export {
+  buildBinnedDataset,
+  prepareRegressionInput,
+  VAR_BLOCK,
+  VAR_TIME,
+  VAR_TOTAL,
+  type BinnedDataset,
+  type VariableDef,
+  type VariableKind,
+  type RegressionInput,
+} from './dataset';
+export { resolveRegression, recomputeAllRegressions } from './regressionModel';
+export {
+  studentTTwoTailedP,
+  fUpperTailP,
+  tCritical,
+  incompleteBeta,
+} from './distributions';

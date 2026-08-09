@@ -1,7 +1,17 @@
 import { create } from 'zustand';
-import type { Analysis, CustomAnalysis, EventDefinition } from '@/types';
+import type {
+  Analysis,
+  CustomAnalysis,
+  EventDefinition,
+  RegressionModel,
+} from '@/types';
 import { getAnalysis, saveAnalysis } from '@/storage';
-import { recomputeAllCustom } from '@/analysis';
+import { recomputeAllCustom, recomputeAllRegressions } from '@/analysis';
+
+/** Recalcula tudo que é derivado (custom + regressões) antes de persistir. */
+function recomputeAll(a: Analysis): Analysis {
+  return recomputeAllRegressions(recomputeAllCustom(a));
+}
 
 /**
  * Store da análise em edição (a que está aberta no momento).
@@ -21,6 +31,8 @@ interface CurrentState {
   setEventDefinitions: (defs: Record<number, EventDefinition>) => void;
   upsertCustomAnalysis: (ca: CustomAnalysis) => void;
   removeCustomAnalysis: (id: string) => void;
+  upsertRegression: (model: RegressionModel) => void;
+  removeRegression: (id: string) => void;
   renameAnalysis: (name: string) => void;
   reset: () => void;
 }
@@ -34,7 +46,7 @@ export const useCurrentAnalysis = create<CurrentState>((set, get) => ({
   },
 
   setAnalysis: (a) => {
-    const withRecomputed = recomputeAllCustom(a);
+    const withRecomputed = recomputeAll(a);
     saveAnalysis(withRecomputed);
     set({ analysis: withRecomputed });
   },
@@ -47,7 +59,7 @@ export const useCurrentAnalysis = create<CurrentState>((set, get) => ({
       eventDefinitions: { ...a.eventDefinitions, [code]: def },
       updatedAt: new Date().toISOString(),
     };
-    const recomputed = recomputeAllCustom(next);
+    const recomputed = recomputeAll(next);
     saveAnalysis(recomputed);
     set({ analysis: recomputed });
   },
@@ -60,7 +72,7 @@ export const useCurrentAnalysis = create<CurrentState>((set, get) => ({
       eventDefinitions: defs,
       updatedAt: new Date().toISOString(),
     };
-    const recomputed = recomputeAllCustom(next);
+    const recomputed = recomputeAll(next);
     saveAnalysis(recomputed);
     set({ analysis: recomputed });
   },
@@ -77,7 +89,7 @@ export const useCurrentAnalysis = create<CurrentState>((set, get) => ({
       customAnalysis: list,
       updatedAt: new Date().toISOString(),
     };
-    const recomputed = recomputeAllCustom(next);
+    const recomputed = recomputeAll(next);
     saveAnalysis(recomputed);
     set({ analysis: recomputed });
   },
@@ -88,6 +100,35 @@ export const useCurrentAnalysis = create<CurrentState>((set, get) => ({
     const next: Analysis = {
       ...a,
       customAnalysis: a.customAnalysis.filter((x) => x.id !== id),
+      updatedAt: new Date().toISOString(),
+    };
+    saveAnalysis(next);
+    set({ analysis: next });
+  },
+
+  upsertRegression: (model) => {
+    const a = get().analysis;
+    if (!a) return;
+    const list = (a.regressions ?? []).slice();
+    const existing = list.findIndex((x) => x.id === model.id);
+    if (existing >= 0) list[existing] = model;
+    else list.push(model);
+    const next: Analysis = {
+      ...a,
+      regressions: list,
+      updatedAt: new Date().toISOString(),
+    };
+    const recomputed = recomputeAll(next);
+    saveAnalysis(recomputed);
+    set({ analysis: recomputed });
+  },
+
+  removeRegression: (id) => {
+    const a = get().analysis;
+    if (!a) return;
+    const next: Analysis = {
+      ...a,
+      regressions: (a.regressions ?? []).filter((x) => x.id !== id),
       updatedAt: new Date().toISOString(),
     };
     saveAnalysis(next);

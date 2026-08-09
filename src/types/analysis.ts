@@ -24,6 +24,8 @@ export interface Analysis {
   events: RawEvent[];
   /** Análises customizadas que o próprio usuário criar (derivadas). */
   customAnalysis: CustomAnalysis[];
+  /** Modelos de regressão salvos. Opcional: análises gravadas antes desta feature não têm. */
+  regressions?: RegressionModel[];
 }
 
 /** Estatísticas pré-calculadas para o dashboard. */
@@ -91,4 +93,52 @@ export interface CustomAnalysisResult {
   sampleSize: number;
   /** Indica por que está vazio (sem pares, sem eventos, etc.). Sem erro — só contexto. */
   emptyReason?: string;
+}
+
+// ---------- Regressão linear ----------
+
+/** Uma linha da tabela de coeficientes, já serializável. */
+export interface RegressionCoefficient {
+  /** Id da variável, ou "(intercepto)". */
+  name: string;
+  label: string;
+  beta: number;
+  stdError: number;
+  t: number;
+  pValue: number;
+  ciLow: number;
+  ciHigh: number;
+}
+
+/** Resumo do ajuste, cacheado junto do modelo (sem fitted/residuals). */
+export interface RegressionSummary {
+  ok: boolean;
+  /** Preenchido quando ok === false. */
+  reason?: string;
+  coefficients?: RegressionCoefficient[];
+  n?: number;
+  k?: number;
+  r2?: number;
+  adjR2?: number;
+  residualStdError?: number;
+  f?: number;
+  fPValue?: number;
+  /** Blocos descartados por dados faltantes nas variáveis escolhidas. */
+  droppedRows?: number;
+}
+
+export interface RegressionModel {
+  id: string;
+  name: string;
+  /** Sessão sobre a qual o modelo foi definido ('ALL' ou a seção MED-PC). */
+  session: string | 'ALL';
+  /** Largura do bloco de tempo, em segundos — define quantas observações existem. */
+  binSeconds: number;
+  /** Id da variável dependente. */
+  yVariable: string;
+  /** Ids dos preditores: 1 item = regressão simples, 2+ = múltipla. */
+  xVariables: string[];
+  createdAt: string;
+  /** Resultado cacheado, recalculado a cada alteração da análise. */
+  result?: RegressionSummary;
 }
