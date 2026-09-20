@@ -83,11 +83,13 @@ export function NewAnalysisPage() {
             knownCodes={knownCodes}
             codeStats={stats.byCode}
             initial={tempAnalysis.eventDefinitions}
+            initialCategories={tempAnalysis.customCategories ?? []}
             onCancel={() => setStage({ kind: 'idle' })}
-            onSave={(defs) => {
+            onSave={(defs, cats) => {
               const finalAnalysis: Analysis = {
                 ...tempAnalysis,
                 eventDefinitions: defs,
+                customCategories: cats,
               };
               importNew(finalAnalysis);
               navigate(`/analysis/${finalAnalysis.id}`);

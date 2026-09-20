@@ -78,6 +78,30 @@ export function formatTimeRaw(value: string | undefined): string {
   return `${h.padStart(2, '0')}:${min}:${s}`;
 }
 
+/**
+ * "9:30" → 570, "9.5" → 570, "9" → 540. Devolve segundos, ou `null` quando
+ * a string não for um tempo válido. Aceita vírgula decimal (pt-BR).
+ */
+export function parseMinutesInput(input: string): number | null {
+  const raw = input.trim().replace(',', '.');
+  if (raw === '') return null;
+  const clock = /^(\d+):([0-5]?\d(?:\.\d+)?)$/.exec(raw);
+  if (clock) {
+    return Number.parseInt(clock[1], 10) * 60 + Number.parseFloat(clock[2]);
+  }
+  if (!/^\d+(\.\d+)?$/.test(raw)) return null;
+  return Number.parseFloat(raw) * 60;
+}
+
+/** Segundos → "9:30" (minutos:segundos), para os campos da janela de tempo. */
+export function formatMinutes(seconds: number): string {
+  if (!Number.isFinite(seconds) || seconds < 0) return '0:00';
+  const total = Math.round(seconds);
+  const m = Math.floor(total / 60);
+  const s = total % 60;
+  return `${m}:${s.toString().padStart(2, '0')}`;
+}
+
 /** UUID v4 sem dependência externa. Bom o bastante para LocalStorage local. */
 export function uuid(): string {
   // crypto.randomUUID é amplamente suportado nos navegadores atuais.

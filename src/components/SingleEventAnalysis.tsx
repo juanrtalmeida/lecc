@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import type { Analysis, RawEvent } from '@/types';
-import { CATEGORY_META, type EventCategory } from '@/types';
+import { analysisCategoryMap, categoryOfCode } from '@/analysis';
 import { CategoryBadge } from './CategoryBadge';
 import { formatTime, formatTimeShort } from '@/utils';
 import { useCurrentAnalysis } from '@/hooks';
@@ -50,6 +50,7 @@ export function SingleEventAnalysis({
   onClearHighlight,
 }: Props) {
   const upsert = useCurrentAnalysis((s) => s.upsertCustomAnalysis);
+  const categoryMap = useMemo(() => analysisCategoryMap(analysis), [analysis]);
 
   const event =
     highlightIndex != null
@@ -107,9 +108,7 @@ export function SingleEventAnalysis({
     );
   }
 
-  const catMeta =
-    CATEGORY_META[(def?.category as EventCategory) ?? ('Outro' as EventCategory)] ??
-    CATEGORY_META.Outro;
+  const catMeta = categoryOfCode(analysis, event.code);
   const dtPrev =
     prevEv && event ? event.time - prevEv.time : Number.NaN;
   const dtNext =
@@ -140,7 +139,7 @@ export function SingleEventAnalysis({
               <span className="font-mono font-bold">{event.code}</span>
               <span>{def?.name ?? '(sem nome)'}</span>
             </span>
-            <CategoryBadge category={(def?.category as EventCategory) ?? 'Outro'} />
+            <CategoryBadge category={catMeta.name} categories={categoryMap} />
           </div>
         </div>
         {onClearHighlight && (

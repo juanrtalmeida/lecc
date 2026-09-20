@@ -50,3 +50,32 @@ export {
   tCritical,
   incompleteBeta,
 } from './distributions';
+
+export {
+  sessionBounds,
+  defaultFilter,
+  clampFilter,
+  hasCodeFilter,
+  isFullWindow,
+  isNeutralFilter,
+  isolatedCodeSet,
+  filterEvents,
+  applyFilter,
+  listCodeOptions,
+  describeFilter,
+  type TimeBounds,
+  type CodeOption,
+} from './filters';
+
+export {
+  customCategoriesOf,
+  analysisCategories,
+  analysisCategoryMap,
+  categoryOfCode,
+  categoryNameOfCode,
+  categoriesWithEvents,
+  addCustomCategory,
+  removeCustomCategory,
+  renameCustomCategory,
+  codesPerCategory,
+} from './categories';

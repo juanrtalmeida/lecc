@@ -2,15 +2,33 @@ import { create } from 'zustand';
 import type {
   Analysis,
   CustomAnalysis,
+  CustomCategory,
   EventDefinition,
   RegressionModel,
 } from '@/types';
 import { getAnalysis, saveAnalysis } from '@/storage';
-import { recomputeAllCustom, recomputeAllRegressions } from '@/analysis';
+import {
+  addCustomCategory,
+  recomputeAllCustom,
+  recomputeAllRegressions,
+  removeCustomCategory,
+  renameCustomCategory,
+} from '@/analysis';
 
 /** Recalcula tudo que é derivado (custom + regressões) antes de persistir. */
 function recomputeAll(a: Analysis): Analysis {
   return recomputeAllRegressions(recomputeAllCustom(a));
+}
+
+/** Grava uma alteração de categorias — elas mexem nas definições, não nos eventos. */
+function persistCategories(
+  next: Analysis,
+  set: (partial: { analysis: Analysis }) => void,
+): void {
+  const stamped: Analysis = { ...next, updatedAt: new Date().toISOString() };
+  const recomputed = recomputeAll(stamped);
+  saveAnalysis(recomputed);
+  set({ analysis: recomputed });
 }
 
 /**
@@ -27,8 +45,20 @@ interface CurrentState {
   setAnalysis: (a: Analysis) => void;
   /** Atualiza uma definição de evento (UI chamará). */
   setEventDefinition: (code: number, def: EventDefinition) => void;
-  /** Substitui em massa — útil para a tela de identificação. */
-  setEventDefinitions: (defs: Record<number, EventDefinition>) => void;
+  /**
+   * Substitui em massa — útil para a tela de identificação, que também pode
+   * devolver categorias criadas ali mesmo.
+   */
+  setEventDefinitions: (
+    defs: Record<number, EventDefinition>,
+    customCategories?: CustomCategory[],
+  ) => void;
+  /** Cria uma categoria customizada (ignora nome duplicado ou canônico). */
+  addCategory: (cat: CustomCategory) => void;
+  /** Exclui uma categoria customizada; os códigos dela voltam para "Outro". */
+  removeCategory: (name: string) => void;
+  /** Renomeia uma categoria customizada, arrastando as definições junto. */
+  renameCategory: (from: string, to: string) => void;
   upsertCustomAnalysis: (ca: CustomAnalysis) => void;
   removeCustomAnalysis: (id: string) => void;
   upsertRegression: (model: RegressionModel) => void;
@@ -64,17 +94,42 @@ export const useCurrentAnalysis = create<CurrentState>((set, get) => ({
     set({ analysis: recomputed });
   },
 
-  setEventDefinitions: (defs) => {
+  setEventDefinitions: (defs, customCategories) => {
     const a = get().analysis;
     if (!a) return;
     const next: Analysis = {
       ...a,
       eventDefinitions: defs,
+      customCategories: customCategories ?? a.customCategories ?? [],
       updatedAt: new Date().toISOString(),
     };
     const recomputed = recomputeAll(next);
     saveAnalysis(recomputed);
     set({ analysis: recomputed });
+  },
+
+  addCategory: (cat) => {
+    const a = get().analysis;
+    if (!a) return;
+    const next = addCustomCategory(a, cat);
+    if (next === a) return;
+    persistCategories(next, set);
+  },
+
+  removeCategory: (name) => {
+    const a = get().analysis;
+    if (!a) return;
+    const next = removeCustomCategory(a, name);
+    if (next === a) return;
+    persistCategories(next, set);
+  },
+
+  renameCategory: (from, to) => {
+    const a = get().analysis;
+    if (!a) return;
+    const next = renameCustomCategory(a, from, to);
+    if (next === a) return;
+    persistCategories(next, set);
   },
 
   upsertCustomAnalysis: (ca) => {

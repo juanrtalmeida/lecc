@@ -1,7 +1,14 @@
 import { useMemo, useState } from 'react';
-import type { EventDefinition } from '@/types';
-import { EVENT_CATEGORIES, CATEGORY_META } from '@/types';
+import type { CustomCategory, EventDefinition } from '@/types';
+import {
+  EVENT_CATEGORIES,
+  CATEGORY_META,
+  FALLBACK_CATEGORY,
+  buildCategoryList,
+  buildCategoryMap,
+} from '@/types';
 import { CategoryBadge } from './CategoryBadge';
+import { CategoryEditor } from './CategoryEditor';
 import { formatTimeShort } from '@/utils';
 
 interface Props {
@@ -11,7 +18,13 @@ interface Props {
   codeStats: Record<number, { count: number; first: number; last: number }>;
   /** Estado inicial das definições. */
   initial: Record<number, EventDefinition>;
-  onSave: (next: Record<number, EventDefinition>) => void;
+  /** Categorias customizadas já existentes na análise. */
+  initialCategories?: CustomCategory[];
+  /** Devolve definições e categorias juntas — as duas são salvas na mesma ação. */
+  onSave: (
+    next: Record<number, EventDefinition>,
+    customCategories: CustomCategory[],
+  ) => void;
   onCancel?: () => void;
   /** Quando já foi salva alguma vez — transforma botão "Concluir" em "Atualizar identificações". */
   isUpdate?: boolean;
@@ -21,6 +34,7 @@ export function EventIdentificationForm({
   knownCodes,
   codeStats,
   initial,
+  initialCategories = [],
   onSave,
   onCancel,
   isUpdate,
@@ -32,11 +46,58 @@ export function EventIdentificationForm({
     }
     return out;
   });
+  const [cats, setCats] = useState<CustomCategory[]>(initialCategories);
 
   const missing = useMemo(
     () => knownCodes.filter((c) => !defs[c]?.name?.trim()),
     [knownCodes, defs],
   );
+
+  const categoryOptions = useMemo(() => buildCategoryList(cats), [cats]);
+  const categoryMap = useMemo(() => buildCategoryMap(cats), [cats]);
+
+  /** Quantos códigos usam cada categoria — alimenta os contadores do editor. */
+  const usage = useMemo(() => {
+    const out: Record<string, number> = {};
+    for (const info of categoryOptions) out[info.name] = 0;
+    for (const code of knownCodes) {
+      const cat = defs[code]?.category ?? FALLBACK_CATEGORY;
+      const key = out[cat] != null ? cat : FALLBACK_CATEGORY;
+      out[key] = (out[key] ?? 0) + 1;
+    }
+    return out;
+  }, [categoryOptions, defs, knownCodes]);
+
+  /**
+   * Ao excluir/renomear uma categoria, as definições precisam acompanhar —
+   * senão ficam apontando para um nome que não existe mais.
+   */
+  const changeCategories = (next: CustomCategory[]) => {
+    const validNames = new Set(buildCategoryList(next).map((c) => c.name));
+    const before = cats.map((c) => c.name);
+    const after = next.map((c) => c.name);
+
+    // Renomeação: mesma posição, nome diferente. Arrasta os códigos junto.
+    const renames = new Map<string, string>();
+    if (before.length === after.length) {
+      before.forEach((old, i) => {
+        if (old !== after[i]) renames.set(old, after[i]);
+      });
+    }
+
+    const nextDefs: Record<number, EventDefinition> = {};
+    for (const [code, def] of Object.entries(defs)) {
+      const renamed = renames.get(def.category);
+      const category = renamed ?? def.category;
+      nextDefs[Number(code)] = {
+        ...def,
+        category: validNames.has(category) ? category : FALLBACK_CATEGORY,
+      };
+    }
+
+    setCats(next);
+    setDefs(nextDefs);
+  };
 
   return (
     <div className="card p-5">
@@ -54,6 +115,10 @@ export function EventIdentificationForm({
             {knownCodes.length - missing.length}/{knownCodes.length} prontos
           </span>
         </div>
+      </div>
+
+      <div className="mb-4">
+        <CategoryEditor categories={cats} onChange={changeCategories} usage={usage} />
       </div>
 
       <ul className="divide-y divide-line">
@@ -108,9 +173,10 @@ export function EventIdentificationForm({
                     setDefs({ ...defs, [code]: { ...def, category: e.target.value } })
                   }
                 >
-                  {EVENT_CATEGORIES.map((c) => (
-                    <option key={c} value={c}>
-                      {c}
+                  {categoryOptions.map((c) => (
+                    <option key={c.name} value={c.name}>
+                      {c.symbol} {c.name}
+                      {c.custom ? ' (sua)' : ''}
                     </option>
                   ))}
                 </select>
@@ -147,7 +213,7 @@ export function EventIdentificationForm({
                   </button>
                 </div>
                 <div className="mt-2">
-                  <CategoryBadge category={def.category} />
+                  <CategoryBadge category={def.category} categories={categoryMap} />
                 </div>
               </div>
             </li>
@@ -175,7 +241,7 @@ export function EventIdentificationForm({
           <button
             className="btn-primary"
             disabled={missing.length > 0}
-            onClick={() => onSave(defs)}
+            onClick={() => onSave(defs, cats)}
           >
             {isUpdate ? 'Salvar alterações' : 'Abrir dashboard'}
           </button>

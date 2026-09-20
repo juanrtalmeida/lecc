@@ -4,6 +4,7 @@ import {
   AnalysesListPage,
   NewAnalysisPage,
   AnalysisViewPage,
+  DocsPage,
 } from '@/pages';
 
 export default function App() {
@@ -13,6 +14,7 @@ export default function App() {
         <Route path="/" element={<AnalysesListPage />} />
         <Route path="/new" element={<NewAnalysisPage />} />
         <Route path="/analysis/:id" element={<AnalysisViewPage />} />
+        <Route path="/docs" element={<DocsPage />} />
         <Route
           path="*"
           element={

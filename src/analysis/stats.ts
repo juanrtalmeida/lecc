@@ -1,30 +1,21 @@
-import type {
-  Analysis,
-  AnalysisStats,
-  EventCategory,
-  RawEvent,
-} from '@/types';
-import { EVENT_CATEGORIES } from '@/types';
+import type { Analysis, AnalysisStats, RawEvent } from '@/types';
+import { analysisCategories, categoryNameOfCode } from './categories';
 
 /**
  * Calcula estatísticas agregadas a partir dos eventos
  * e do eventDefinitions (que indica a categoria de cada code).
  *
- * Eventos sem definição mapeiam para "Outro".
+ * Eventos sem definição — ou apontando para uma categoria customizada que foi
+ * excluída — mapeiam para "Outro". Todas as categorias da análise (canônicas e
+ * customizadas) aparecem em `byCategory`, mesmo zeradas.
  */
 export function computeStats(analysis: Analysis): AnalysisStats {
-  const byCategory: Record<EventCategory, number> = {
-    Resposta: 0,
-    Reforço: 0,
-    Estímulo: 0,
-    Estado: 0,
-    Outro: 0,
-  };
+  const byCategory: Record<string, number> = {};
+  for (const info of analysisCategories(analysis)) byCategory[info.name] = 0;
   const byCode: AnalysisStats['byCode'] = {};
 
   for (const ev of analysis.events) {
-    const def = analysis.eventDefinitions[ev.code];
-    const cat = (def?.category ?? 'Outro') as EventCategory;
+    const cat = categoryNameOfCode(analysis, ev.code);
     byCategory[cat] = (byCategory[cat] ?? 0) + 1;
     const cur = byCode[ev.code];
     if (!cur) {
@@ -52,21 +43,16 @@ export function computeStats(analysis: Analysis): AnalysisStats {
   };
 }
 
-/**
- * Soma de quantidade por categoria, mas só das categorias canônicas.
- * Mantém compat com EVENT_CATEGORIES (Iterable).
- */
-export function sumCounted(byCategory: Record<EventCategory, number>): number {
+/** Soma de quantidade por categoria — canônicas e customizadas. */
+export function sumCounted(byCategory: Record<string, number>): number {
   let total = 0;
-  for (const c of EVENT_CATEGORIES) total += byCategory[c] ?? 0;
+  for (const n of Object.values(byCategory)) total += n;
   return total;
 }
 
-/** Lista de categorias que TÊM pelo menos 1 evento. */
-export function categoriesInUse(
-  stats: AnalysisStats,
-): EventCategory[] {
-  return EVENT_CATEGORIES.filter((c) => (stats.byCategory[c] ?? 0) > 0);
+/** Nomes das categorias que TÊM pelo menos 1 evento. */
+export function categoriesInUse(stats: AnalysisStats): string[] {
+  return Object.keys(stats.byCategory).filter((c) => (stats.byCategory[c] ?? 0) > 0);
 }
 
 /**

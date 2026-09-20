@@ -8,6 +8,7 @@ import {
   type SortingState,
 } from '@tanstack/react-table';
 import type { Analysis, RawEvent } from '@/types';
+import { analysisCategoryMap } from '@/analysis';
 import { CategoryBadge } from './CategoryBadge';
 import { formatTime, formatTimeShort } from '@/utils';
 
@@ -15,6 +16,12 @@ interface Props {
   analysis: Analysis;
   highlightIndex?: number | null;
   onSelectEvent?: (eventIndex: number) => void;
+  /**
+   * Códigos isolados no painel de filtros. Quando a contagem inclui os demais
+   * eventos, as linhas de fora do isolamento continuam na tabela — mas esmaecidas,
+   * para o recorte escolhido continuar legível. `null` = sem isolamento.
+   */
+  isolatedCodes?: Set<number> | null;
 }
 
 interface EventRow {
@@ -26,10 +33,14 @@ interface EventRow {
   category: string;
 }
 
-export function EventsTable({ analysis, highlightIndex, onSelectEvent }: Props) {
+export function EventsTable({
+  analysis,
+  highlightIndex,
+  onSelectEvent,
+  isolatedCodes = null,
+}: Props) {
   const [sorting, setSorting] = useState<SortingState>([]);
   const [globalFilter, setGlobalFilter] = useState<string>('');
-  const [categoryFilter, setCategoryFilter] = useState<string>('all');
 
   // Recalcula linhas quando a análise muda.
   const rows: EventRow[] = useMemo(() => {
@@ -49,38 +60,27 @@ export function EventsTable({ analysis, highlightIndex, onSelectEvent }: Props) 
   // Reset quando muda análise (análise anterior já fica em outro componente).
   useEffect(() => {
     setGlobalFilter('');
-    setCategoryFilter('all');
     setSorting([]);
   }, [analysis.id]);
 
-  // Códigos únicos para o filtro
-  const codeOptions = useMemo(() => {
-    const set = new Set<number>();
-    for (const ev of analysis.events) set.add(ev.code);
-    return Array.from(set).sort((a, b) => a - b);
-  }, [analysis]);
+  // Catálogo de categorias da análise — canônicas + criadas pelo usuário.
+  const categoryMap = useMemo(() => analysisCategoryMap(analysis), [analysis]);
 
-  const filteredRows = useMemo(() => {
-    if (categoryFilter === 'all') return rows;
-    return rows.filter((r) => r.category === categoryFilter);
-  }, [rows, categoryFilter]);
-
-  // ----- Filtro de busca (apenas code + name) -------------------------------
-  // Substitui o `globalFilterFn: 'includesString'` padrão, que serializava a linha
-  // inteira e podia casar campos como índice/ timestamp/ time — não é isso que o
-  // usuário quer quando digita no campo "Buscar (código, nome...)".
-  // Aceita busca por substring de dígitos em `code` ou substring (case-insensitive)
-  // em `name`. Linhas que não casam são removidas.
+  // ----- Localizar na tabela (apenas code + name) ---------------------------
+  // Isto NÃO é um filtro da análise — recortar a sessão é trabalho do painel da
+  // linha do tempo. Aqui é só uma busca para achar uma linha no meio da lista.
+  // Substitui o `globalFilterFn: 'includesString'` padrão, que serializava a
+  // linha inteira e casava índice, timestamp e tempo junto.
   const searchedRows = useMemo(() => {
     const q = globalFilter.trim().toLowerCase();
-    if (!q) return filteredRows;
-    return filteredRows.filter((r) => {
+    if (!q) return rows;
+    return rows.filter((r) => {
       // match exato (string) ou por substring de dígitos no código
       if (String(r.code).includes(q)) return true;
       if (r.name.toLowerCase().includes(q)) return true;
       return false;
     });
-  }, [filteredRows, globalFilter]);
+  }, [rows, globalFilter]);
 
   // Mapa `index → posição` dentro das linhas visíveis e array de tempos
   // anteriores — usados pela célula Δ para calcular a diferença entre
@@ -136,7 +136,9 @@ export function EventsTable({ analysis, highlightIndex, onSelectEvent }: Props) 
       {
         accessorKey: 'category',
         header: 'Categoria',
-        cell: ({ row }) => <CategoryBadge category={row.original.category} />,
+        cell: ({ row }) => (
+          <CategoryBadge category={row.original.category} categories={categoryMap} />
+        ),
       },
       {
         id: 'delta',
@@ -161,7 +163,7 @@ export function EventsTable({ analysis, highlightIndex, onSelectEvent }: Props) 
         },
       },
     ],
-    [visibleTimeAtPos, rowPositions],
+    [visibleTimeAtPos, rowPositions, categoryMap],
   );
 
   const table = useReactTable({
@@ -176,6 +178,12 @@ export function EventsTable({ analysis, highlightIndex, onSelectEvent }: Props) 
     getSortedRowModel: getSortedRowModel(),
     globalFilterFn: () => true,
   });
+
+  /** Quantas das linhas visíveis pertencem aos códigos isolados. */
+  const isolatedRowCount = useMemo(() => {
+    if (!isolatedCodes) return searchedRows.length;
+    return searchedRows.reduce((acc, r) => acc + (isolatedCodes.has(r.code) ? 1 : 0), 0);
+  }, [searchedRows, isolatedCodes]);
 
   const containerRef = useRef<HTMLDivElement | null>(null);
   useEffect(() => {
@@ -192,25 +200,18 @@ export function EventsTable({ analysis, highlightIndex, onSelectEvent }: Props) 
   return (
     <div className="card p-4">
       <div className="flex items-center gap-2 flex-wrap mb-3">
-        <h3 className="font-semibold flex-1 text-slate-900">Eventos ({table.getRowModel().rows.length})</h3>
-        {codeOptions.length > 0 && (
-          <select
-            value={categoryFilter}
-            onChange={(e) => setCategoryFilter(e.target.value)}
-            className="input max-w-[12rem]"
-          >
-            <option value="all">Todas as categorias</option>
-            <option value="Resposta">Resposta</option>
-            <option value="Reforço">Reforço</option>
-            <option value="Estímulo">Estímulo</option>
-            <option value="Estado">Estado</option>
-            <option value="Outro">Outro</option>
-          </select>
-        )}
+        <h3 className="font-semibold flex-1 text-slate-900">
+          Eventos ({table.getRowModel().rows.length})
+          {isolatedCodes && isolatedRowCount !== table.getRowModel().rows.length && (
+            <span className="ml-2 text-xs font-normal text-slate-500">
+              · {isolatedRowCount.toLocaleString('pt-BR')} isolados
+            </span>
+          )}
+        </h3>
         <input
           type="text"
-          placeholder="Buscar (código, nome...)"
-          className="input max-w-[16rem]"
+          placeholder="Localizar nesta tabela (código, nome...)"
+          className="input max-w-[18rem]"
           value={globalFilter}
           onChange={(e) => setGlobalFilter(e.target.value)}
         />
@@ -239,13 +240,16 @@ export function EventsTable({ analysis, highlightIndex, onSelectEvent }: Props) 
             {table.getRowModel().rows.map((row) => {
               const i = row.original.index;
               const isHL = highlightIndex === i;
+              const muted = isolatedCodes != null && !isolatedCodes.has(row.original.code);
               return (
                 <tr
                   key={row.id}
                   data-event-index={i}
                   onClick={() => onSelectEvent?.(i)}
+                  title={muted ? 'Fora dos códigos isolados — entra apenas na contagem.' : undefined}
                   className={`border-b border-line/50 cursor-pointer transition-colors
-                              ${isHL ? 'bg-brand/15' : 'hover:bg-bg-elevated/60'}`}
+                              ${isHL ? 'bg-brand/15' : 'hover:bg-bg-elevated/60'}
+                              ${muted ? 'opacity-45' : ''}`}
                 >
                   {row.getVisibleCells().map((cell) => (
                     <td key={cell.id} className="px-3 py-1.5">

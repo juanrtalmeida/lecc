@@ -11,18 +11,23 @@ import {
 } from 'recharts';
 import { StatCard } from './StatCard';
 import type { Analysis } from '@/types';
-import { computeStats } from '@/analysis';
-import { CATEGORY_META, EVENT_CATEGORIES } from '@/types';
+import { analysisCategories, computeStats } from '@/analysis';
+import { CATEGORY_META } from '@/types';
 import { formatDuration } from '@/utils';
 
 export function StatsPanel({ analysis }: { analysis: Analysis }) {
   const stats = useMemo(() => computeStats(analysis), [analysis]);
 
-  const byCatChart = EVENT_CATEGORIES.map((c) => ({
-    name: c,
-    value: stats.byCategory[c] ?? 0,
-    color: CATEGORY_META[c].color,
-  }));
+  // Inclui as categorias criadas pelo usuário, na mesma ordem do catálogo.
+  const byCatChart = useMemo(
+    () =>
+      analysisCategories(analysis).map((c) => ({
+        name: c.name,
+        value: stats.byCategory[c.name] ?? 0,
+        color: c.color,
+      })),
+    [analysis, stats],
+  );
 
   const byCodeChart = useMemo(() => {
     return Object.entries(stats.byCode)

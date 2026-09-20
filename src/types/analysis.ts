@@ -1,7 +1,7 @@
-import type { EventCategory, EventDefinition } from './categories';
+import type { CustomCategory, EventDefinition } from './categories';
 
 export type { EventCategory } from './categories';
-export type { EventDefinition } from './categories';
+export type { EventDefinition, CustomCategory, CategoryInfo } from './categories';
 
 import type { RawEvent } from './parser';
 export type { RawEvent, ParsedFile } from './parser';
@@ -20,6 +20,11 @@ export interface Analysis {
   header: Record<string, string>;
   /** Definições indexadas pelo code (number). */
   eventDefinitions: Record<number, EventDefinition>;
+  /**
+   * Categorias criadas pelo usuário, além das cinco canônicas. Opcional:
+   * análises gravadas antes desta feature não têm o campo.
+   */
+  customCategories?: CustomCategory[];
   /** Eventos puros, em ordem cronológica. */
   events: RawEvent[];
   /** Análises customizadas que o próprio usuário criar (derivadas). */
@@ -31,7 +36,11 @@ export interface Analysis {
 /** Estatísticas pré-calculadas para o dashboard. */
 export interface AnalysisStats {
   totalEvents: number;
-  byCategory: Record<EventCategory, number>;
+  /**
+   * Contagem por nome de categoria. Inclui sempre as canônicas (mesmo zeradas)
+   * e as customizadas da análise — por isso a chave é `string`, não `EventCategory`.
+   */
+  byCategory: Record<string, number>;
   durationSeconds: number;
   eventsPerMinute: number;
   byCode: Record<number, { count: number; first: number; last: number }>;

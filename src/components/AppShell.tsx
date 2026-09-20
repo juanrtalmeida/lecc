@@ -30,6 +30,19 @@ export function AppShell({ children }: { children: ReactNode }) {
             >
               Análises
             </NavLink>
+            <NavLink
+              to="/docs"
+              className={({ isActive }) =>
+                [
+                  'px-3 py-1.5 rounded-lg text-sm transition-colors',
+                  isActive
+                    ? 'bg-bg-subtle text-slate-900 font-medium'
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-bg-subtle',
+                ].join(' ')
+              }
+            >
+              Documentação
+            </NavLink>
           </nav>
         </div>
       </header>

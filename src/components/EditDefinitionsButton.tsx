@@ -28,9 +28,10 @@ export function EditDefinitionsButton({ analysis }: { analysis: Analysis }) {
           knownCodes={knownCodes}
           codeStats={stats.byCode}
           initial={analysis.eventDefinitions}
+          initialCategories={analysis.customCategories ?? []}
           isUpdate
-          onSave={(defs) => {
-            setDefinitions(defs);
+          onSave={(defs, cats) => {
+            setDefinitions(defs, cats);
             setOpen(false);
           }}
         />
