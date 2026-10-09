@@ -15,6 +15,9 @@ máquina.
 - Uma tela onde cada código recebe um nome, uma categoria e uma cor.
 - O programa já mostra quantas vezes cada código ocorreu e quando foi a primeira e a
   última ocorrência, para ajudar a reconhecer o que é o quê.
+- **Correção do cabeçalho**: sujeito, data, grupo ou qualquer outro campo pode ser
+  ajustado depois. O valor original do arquivo fica guardado e aparece ao lado do
+  corrigido, na tela e na exportação.
 
 ### Organizar o seu vocabulário
 - Cinco categorias prontas: Resposta, Reforço, Estímulo, Estado e Outro.
@@ -39,15 +42,24 @@ máquina.
   distribuição dos intervalos entre ocorrências daquele mesmo evento.
 
 ### Analisar
-- **Análises próprias**: tempo entre dois eventos — média, mediana, desvio padrão,
+A página da análise é dividida em blocos — Recorte, Visão geral, Eventos, Tempo entre
+eventos, Probabilidades, Regressão e Exportar —, com atalhos no topo para cada um.
+
+- **Tempo entre eventos**: tempo entre dois eventos — média, mediana, desvio padrão,
   mínimo, máximo, soma, contagem e intervalo médio — com a direção da busca à sua
   escolha (o próximo evento depois, ou o último antes).
+- **Probabilidade condicional**: com que frequência um evento acontece depois (ou antes)
+  de outro — em até N segundos, antes da próxima ocorrência da origem, ou os dois —, com
+  `k/n` e intervalo de confiança de 95%.
+- **Matriz de transição**: a chance de cada evento ser o imediatamente seguinte a outro,
+  comparada com a taxa de base. Dá para escolher quais eventos aparecem.
 - **Regressão linear**, simples ou múltipla, sobre blocos de tempo da sessão, com os
   coeficientes, o erro-padrão, o valor de *p*, o intervalo de confiança, o R², o R²
   ajustado e o teste F.
 
 ### Levar embora
-- Planilha de eventos em CSV, arquivo completo em JSON e pasta de trabalho em XLSX.
+- Planilha de eventos em CSV, arquivo completo em JSON e pasta de trabalho em XLSX — com
+  as probabilidades, a matriz de transição e as correções feitas no cabeçalho.
 - A exportação sai com os filtros que estiverem ativos: o que você vê é o que sai.
 
 ## Como esta documentação está organizada

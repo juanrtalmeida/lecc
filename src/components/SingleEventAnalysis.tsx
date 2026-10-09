@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import type { Analysis, RawEvent } from '@/types';
-import { analysisCategoryMap, categoryOfCode } from '@/analysis';
+import { analysisCategoryMap, categoryOfCode, median as medianOf } from '@/analysis';
 import { CategoryBadge } from './CategoryBadge';
 import { formatTime, formatTimeShort } from '@/utils';
 import { useCurrentAnalysis } from '@/hooks';
@@ -33,7 +33,7 @@ function computeSameCodeStats(events: RawEvent[]): SameCodeStats | null {
   }
   intervals.sort((a, b) => a - b);
   const mean = intervals.reduce((a, b) => a + b, 0) / intervals.length;
-  const median = intervals[Math.floor(intervals.length / 2)];
+  const median = medianOf(intervals)!;
   const min = intervals[0];
   const max = intervals[intervals.length - 1];
   const variance =

@@ -19,3 +19,4 @@ export { RegressionScatter } from './RegressionScatter';
 export { RegressionPanel } from './RegressionPanel';
 export { CategoryEditor } from './CategoryEditor';
 export { Markdown } from './Markdown';
+export { TransitionMatrix } from './TransitionMatrix';

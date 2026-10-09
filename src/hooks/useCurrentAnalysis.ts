@@ -64,6 +64,8 @@ interface CurrentState {
   upsertRegression: (model: RegressionModel) => void;
   removeRegression: (id: string) => void;
   renameAnalysis: (name: string) => void;
+  /** Substitui o cabeçalho do arquivo (correção manual de sujeito, data etc.). */
+  setHeader: (header: Record<string, string>) => void;
   reset: () => void;
 }
 
@@ -196,6 +198,21 @@ export const useCurrentAnalysis = create<CurrentState>((set, get) => ({
     const next: Analysis = {
       ...a,
       name,
+      updatedAt: new Date().toISOString(),
+    };
+    saveAnalysis(next);
+    set({ analysis: next });
+  },
+
+  setHeader: (header) => {
+    const a = get().analysis;
+    if (!a) return;
+    // Cabeçalho não entra em nenhum cálculo — não precisa recomputar.
+    const next: Analysis = {
+      ...a,
+      header,
+      // Só a primeira edição grava o original; as seguintes comparam com ele.
+      headerOriginal: a.headerOriginal ?? a.header,
       updatedAt: new Date().toISOString(),
     };
     saveAnalysis(next);

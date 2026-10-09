@@ -1,6 +1,13 @@
 import * as Papa from 'papaparse';
 import * as ExcelJS from 'exceljs';
 import type { Analysis } from '@/types';
+import { PROBABILITY_OPERATION } from '@/types';
+import {
+  headerChanges,
+  resolveCustomAnalysis,
+  transitionMatrix,
+  wilsonInterval,
+} from '@/analysis';
 
 /**
  * Exporta a tabela de eventos (uma linha por evento) em CSV.
@@ -28,11 +35,18 @@ export function exportAnalysisJson(analysis: Analysis): string {
 }
 
 /**
- * Exporta para um .xlsx com 4 abas:
- *  - Header
+ * Exporta para um .xlsx com as abas:
+ *  - Header (valor atual + original, quando editado)
  *  - Events
  *  - Event Definitions
- *  - Custom Analyses
+ *  - Custom Analyses (tempos)
+ *  - Probabilities
+ *  - Transitions
+ *  - Regressions
+ *
+ * Análises próprias e probabilidades são recalculadas sobre `analysis` — que
+ * chega já recortada pelos filtros —, não lidas do cache, que vale para a
+ * sessão inteira.
  */
 export async function exportAnalysisXlsx(analysis: Analysis): Promise<Blob> {
   const wb = new ExcelJS.Workbook();
@@ -44,9 +58,19 @@ export async function exportAnalysisXlsx(analysis: Analysis): Promise<Blob> {
   headerSheet.columns = [
     { header: 'Field', key: 'field', width: 20 },
     { header: 'Value', key: 'value', width: 40 },
+    { header: 'Original Value', key: 'original', width: 40 },
+    { header: 'Change', key: 'change', width: 12 },
   ];
+  // Campos editados à mão ficam marcados, com o valor que veio no arquivo ao lado.
+  const changes = new Map(headerChanges(analysis).map((c) => [c.field, c]));
   for (const [k, v] of Object.entries(analysis.header)) {
-    headerSheet.addRow({ field: k, value: v });
+    const c = changes.get(k);
+    headerSheet.addRow({ field: k, value: v, original: c?.original ?? '', change: c?.kind ?? '' });
+  }
+  for (const c of changes.values()) {
+    if (c.kind === 'removido') {
+      headerSheet.addRow({ field: c.field, value: '', original: c.original, change: c.kind });
+    }
   }
 
   // Sheet 2 — Events
@@ -107,20 +131,87 @@ export async function exportAnalysisXlsx(analysis: Analysis): Promise<Blob> {
     { header: 'Result', key: 'result', width: 12 },
     { header: 'Created At', key: 'createdAt', width: 20 },
   ];
-  for (const ca of analysis.customAnalysis) {
+  const isProb = (op: string) => op === PROBABILITY_OPERATION;
+  for (const ca of analysis.customAnalysis.filter((x) => !isProb(x.operation))) {
+    const r = resolveCustomAnalysis(analysis, ca);
     caSheet.addRow({
       name: ca.name,
       fromCodes: ca.from.codes.join(', '),
       toCodes: ca.to.codes.join(', '),
       direction: ca.directionAfter,
       operation: ca.operation,
-      sampleSize: ca.sampleSize ?? 0,
-      result: ca.result ?? '',
+      sampleSize: r.sampleSize,
+      result: r.value ?? '',
       createdAt: ca.createdAt,
     });
   }
 
-  // Sheet 5 — Regressions (uma linha por coeficiente, com as colunas do modelo repetidas)
+  // Sheet 5 — Probabilities
+  const probSheet = wb.addWorksheet('Probabilities');
+  probSheet.columns = [
+    { header: 'Name', key: 'name', width: 24 },
+    { header: 'From Codes', key: 'fromCodes', width: 16 },
+    { header: 'To Codes', key: 'toCodes', width: 16 },
+    { header: 'Direction', key: 'direction', width: 12 },
+    { header: 'Window (s)', key: 'window', width: 12 },
+    { header: 'No Origin Between', key: 'untilNextFrom', width: 16 },
+    { header: 'Successes (k)', key: 'k', width: 12 },
+    { header: 'Origins (n)', key: 'n', width: 12 },
+    { header: 'P', key: 'p', width: 10 },
+    { header: 'CI 95% low (Wilson)', key: 'ciLow', width: 18 },
+    { header: 'CI 95% high (Wilson)', key: 'ciHigh', width: 18 },
+    { header: 'Created At', key: 'createdAt', width: 20 },
+  ];
+  for (const ca of analysis.customAnalysis.filter((x) => isProb(x.operation))) {
+    const r = resolveCustomAnalysis(analysis, ca);
+    const k = r.successes ?? 0;
+    const ci = wilsonInterval(k, r.sampleSize);
+    probSheet.addRow({
+      name: ca.name,
+      fromCodes: ca.from.codes.join(', '),
+      toCodes: ca.to.codes.join(', '),
+      direction: ca.directionAfter,
+      window: ca.windowSeconds ?? '',
+      untilNextFrom: ca.untilNextFrom ? 'yes' : 'no',
+      k,
+      n: r.sampleSize,
+      p: r.value ?? '',
+      ciLow: ci?.[0] ?? '',
+      ciHigh: ci?.[1] ?? '',
+      createdAt: ca.createdAt,
+    });
+  }
+
+  // Sheet 6 — Transitions (formato longo: uma linha por par atual → seguinte)
+  const trSheet = wb.addWorksheet('Transitions');
+  trSheet.columns = [
+    { header: 'From Code', key: 'fromCode', width: 10 },
+    { header: 'From Name', key: 'fromName', width: 20 },
+    { header: 'To Code', key: 'toCode', width: 10 },
+    { header: 'To Name', key: 'toName', width: 20 },
+    { header: 'Count', key: 'count', width: 10 },
+    { header: 'From Total', key: 'rowTotal', width: 12 },
+    { header: 'P(To | From)', key: 'p', width: 12 },
+    { header: 'Base P(To)', key: 'base', width: 12 },
+  ];
+  const tm = transitionMatrix(analysis.events);
+  const nameOf = (c: number) => analysis.eventDefinitions[c]?.name ?? '';
+  tm.codes.forEach((from, i) => {
+    tm.codes.forEach((to, j) => {
+      trSheet.addRow({
+        fromCode: from,
+        fromName: nameOf(from),
+        toCode: to,
+        toName: nameOf(to),
+        count: tm.counts[i][j],
+        rowTotal: tm.rowTotals[i],
+        p: tm.rowTotals[i] > 0 ? tm.counts[i][j] / tm.rowTotals[i] : '',
+        base: tm.total > 0 ? tm.colTotals[j] / tm.total : '',
+      });
+    });
+  });
+
+  // Sheet 7 — Regressions (uma linha por coeficiente, com as colunas do modelo repetidas)
   const regSheet = wb.addWorksheet('Regressions');
   regSheet.columns = [
     { header: 'Model', key: 'model', width: 24 },

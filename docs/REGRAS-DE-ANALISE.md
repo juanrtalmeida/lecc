@@ -14,6 +14,8 @@ está aqui.
 | L5 | Eventos com código 0 **não são descartados** na leitura. São frequentemente preenchimento de array, mas quem decide ignorá-los é você, ao identificar os eventos. |
 | L6 | Os eventos são ordenados pelo tempo. Quando dois eventos de seções diferentes caem no mesmo tempo, a ordem entre eles segue o nome da seção — assim a listagem não muda de uma abertura para outra. |
 | L7 | Um arquivo sem nenhum evento numérico é recusado na importação, com uma mensagem explicando o formato esperado. |
+| L8 | O cabeçalho pode ser corrigido em **Editar cabeçalho**. Ele não entra em nenhum cálculo: mudar sujeito, data ou grupo não altera eventos nem resultados. A duração mostrada é sempre a medida nos eventos (S3). |
+| L9 | Na primeira edição, o cabeçalho original do arquivo é guardado e não muda mais. Toda diferença entre ele e o atual é marcada como *alterado*, *adicionado* ou *removido* — na tela e na exportação. Voltar um campo ao valor original desfaz a marca. |
 
 ## Sessões
 
@@ -75,7 +77,19 @@ está aqui.
 | A1 | Cada ocorrência do evento de **origem** é pareada com a **primeira** ocorrência do evento de **destino** na direção escolhida: o próximo depois, ou o último antes. |
 | A2 | Uma origem sem destino correspondente é **descartada** do cálculo. Contá-la como zero rebaixaria artificialmente a latência média. |
 | A3 | O programa mostra sempre o **tamanho da amostra** ao lado do resultado: é o número de pares que entraram na conta. |
-| A4 | Os resultados são recalculados a cada alteração da análise. Nenhum número na tela vem de um cálculo antigo. |
+| A4 | Os resultados são recalculados a cada alteração da análise **e sobre o recorte ativo** — janela, isolamento e sessão. Nenhum número na tela ou na exportação vem de um cálculo antigo ou de outro recorte. |
+
+## Probabilidades
+
+| # | Regra |
+| --- | --- |
+| P1 | A probabilidade condicional é a fração de ocorrências da **origem** que tiveram o **destino** na direção escolhida: `P = origens com destino ÷ total de origens`. |
+| P2 | Ao contrário das análises de tempo (A2), a origem sem destino **não é descartada**: ela é o "não" da conta. |
+| P3 | É obrigatório ao menos um limite: um **tempo máximo** (o extremo conta: destino a exatamente 5 s entra em "até 5 s") ou **nenhuma outra origem no meio**. Sem limite, quase todo destino acabaria contando. |
+| P4 | Quando origem e destino são o mesmo evento, a repetição seguinte é o próprio sucesso. |
+| P5 | O resultado vem com `k/n` e o intervalo de confiança de 95% de **Wilson**, que se comporta bem com amostras pequenas e proporções perto de 0% ou 100%. |
+| P6 | A **matriz de transição** considera só o evento **imediatamente seguinte**. Cada linha soma 100%; a linha *base* mostra quanto cada evento aparece como seguinte em geral, para comparar. |
+| P7 | Ocultar eventos da matriz **não altera a sequência**: as transições para eventos ocultos somam na coluna *outros*, e cada linha continua fechando 100%. |
 
 ## Regressão linear
 
@@ -95,3 +109,4 @@ está aqui.
 | G1 | As análises ficam guardadas no seu navegador, nesta máquina. Nada é enviado para servidor nenhum. |
 | G2 | Limpar os dados do navegador apaga as análises. Para guardar ou levar para outro computador, exporte em JSON. |
 | G3 | Análises salvas em versões anteriores continuam abrindo: recursos novos entram desligados, sem alterar o que já estava lá. |
+| G4 | A exportação sai com o recorte ativo e leva, além dos eventos, as análises, as probabilidades, a matriz de transição, as regressões e as correções do cabeçalho com os valores originais. |

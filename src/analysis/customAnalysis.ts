@@ -5,6 +5,7 @@ import type {
   RawEvent,
 } from '@/types';
 import { applyOperation } from './statsFunctions';
+import { conditionalProbability } from './probability';
 
 /**
  * Para cada ocorrência do(s) código(s) "from", procura a próxima ocorrência do(s)
@@ -55,6 +56,11 @@ export function resolveCustomAnalysis(
   analysis: Analysis,
   ca: CustomAnalysis,
 ): CustomAnalysisResult {
+  if (ca.operation === 'Probabilidade') {
+    const { successes, trials } = conditionalProbability(analysis.events, ca);
+    if (trials === 0) return { value: null, sampleSize: 0, successes: 0, emptyReason: 'Nenhuma ocorrência da origem.' };
+    return { value: successes / trials, sampleSize: trials, successes };
+  }
   const deltas = computePairDeltas(analysis.events, ca);
   if (deltas.length === 0) {
     if (analysis.events.length === 0) return { value: null, sampleSize: 0, emptyReason: 'Sessão sem eventos.' };
@@ -71,7 +77,7 @@ export function recomputeAllCustom(analysis: Analysis): Analysis {
   if (!analysis.customAnalysis.length) return analysis;
   const updated = analysis.customAnalysis.map((ca) => {
     const r = resolveCustomAnalysis(analysis, ca);
-    return { ...ca, result: r.value ?? undefined, sampleSize: r.sampleSize };
+    return { ...ca, result: r.value ?? undefined, sampleSize: r.sampleSize, successes: r.successes };
   });
   return { ...analysis, customAnalysis: updated };
 }

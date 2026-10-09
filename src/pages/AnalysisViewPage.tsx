@@ -12,6 +12,7 @@ import {
   SingleEventAnalysis,
   RegressionPanel,
   TimelinePanel,
+  TransitionMatrix,
 } from '@/components';
 import {
   analysisCategories,
@@ -26,6 +27,32 @@ import {
   summarizeSessions,
 } from '@/analysis';
 import type { EventFilter, RawEvent } from '@/types';
+import type { ReactNode } from 'react';
+
+const SECTIONS = [
+  { id: 'recorte', title: 'Recorte' },
+  { id: 'visao-geral', title: 'Visão geral' },
+  { id: 'eventos', title: 'Eventos' },
+  { id: 'tempos', title: 'Tempo entre eventos' },
+  { id: 'probabilidades', title: 'Probabilidades' },
+  { id: 'regressao', title: 'Regressão' },
+  { id: 'exportar', title: 'Exportar' },
+] as const;
+
+type SectionId = (typeof SECTIONS)[number]['id'];
+
+function Section({ id, hint, children }: { id: SectionId; hint?: string; children: ReactNode }) {
+  const title = SECTIONS.find((s) => s.id === id)!.title;
+  return (
+    <section id={id} className="flex flex-col gap-3 scroll-mt-4">
+      <div className="border-b border-line pb-1.5">
+        <h2 className="text-lg font-semibold text-slate-900">{title}</h2>
+        {hint && <p className="text-sm text-slate-500">{hint}</p>}
+      </div>
+      {children}
+    </section>
+  );
+}
 
 export function AnalysisViewPage() {
   const { id } = useParams<{ id: string }>();
@@ -203,35 +230,58 @@ export function AnalysisViewPage() {
 
       {sessionAnalysis && filteredAnalysis && (
         <>
-          <TimelinePanel
-            analysis={filteredAnalysis}
-            filter={effectiveFilter}
-            onChange={setFilter}
-            bounds={bounds}
-            options={codeOptions}
-            categories={categories}
-            windowEvents={windowEvents}
-            isolatedEvents={isolatedEvents}
-            totalEvents={sessionAnalysis.events.length}
-            highlightIndex={highlightIndex}
-            onSelectEvent={selectByIndex}
-          />
-          <StatsPanel analysis={filteredAnalysis} />
-          <SingleEventAnalysis
-            analysis={filteredAnalysis}
-            highlightIndex={highlightIndex}
-            onSelectEvent={selectByIndex}
-            onClearHighlight={() => setSelected(null)}
-          />
-          <EventsTable
-            analysis={filteredAnalysis}
-            highlightIndex={highlightIndex}
-            isolatedCodes={visibleCodes}
-            onSelectEvent={selectByIndex}
-          />
-          <CustomAnalysesPanel analysis={filteredAnalysis} />
-          <RegressionPanel analysis={filteredAnalysis} session={session} />
-          <ExportPanel analysis={filteredAnalysis} />
+          <nav className="flex flex-wrap gap-1.5 text-sm">
+            {SECTIONS.map((s) => (
+              <a key={s.id} href={`#${s.id}`} className="chip border border-line bg-bg-elevated text-slate-700 hover:border-brand/40">
+                {s.title}
+              </a>
+            ))}
+          </nav>
+          <Section id="recorte" hint="Janela de tempo e eventos isolados. Tudo abaixo obedece a este recorte.">
+            <TimelinePanel
+              analysis={filteredAnalysis}
+              filter={effectiveFilter}
+              onChange={setFilter}
+              bounds={bounds}
+              options={codeOptions}
+              categories={categories}
+              windowEvents={windowEvents}
+              isolatedEvents={isolatedEvents}
+              totalEvents={sessionAnalysis.events.length}
+              highlightIndex={highlightIndex}
+              onSelectEvent={selectByIndex}
+            />
+          </Section>
+          <Section id="visao-geral">
+            <StatsPanel analysis={filteredAnalysis} />
+          </Section>
+          <Section id="eventos" hint="Clique em um evento da linha do tempo ou da tabela para ver seus vizinhos e intervalos.">
+            <SingleEventAnalysis
+              analysis={filteredAnalysis}
+              highlightIndex={highlightIndex}
+              onSelectEvent={selectByIndex}
+              onClearHighlight={() => setSelected(null)}
+            />
+            <EventsTable
+              analysis={filteredAnalysis}
+              highlightIndex={highlightIndex}
+              isolatedCodes={visibleCodes}
+              onSelectEvent={selectByIndex}
+            />
+          </Section>
+          <Section id="tempos" hint="Latências e intervalos: quanto tempo passa de um evento até outro.">
+            <CustomAnalysesPanel analysis={filteredAnalysis} kind="time" />
+          </Section>
+          <Section id="probabilidades" hint="Com que frequência um evento acontece depois (ou antes) de outro.">
+            <CustomAnalysesPanel analysis={filteredAnalysis} kind="probability" />
+            <TransitionMatrix analysis={filteredAnalysis} />
+          </Section>
+          <Section id="regressao" hint="Divide a sessão em blocos de tempo e ajusta um modelo sobre as variáveis de cada bloco.">
+            <RegressionPanel analysis={filteredAnalysis} session={session} />
+          </Section>
+          <Section id="exportar">
+            <ExportPanel analysis={filteredAnalysis} />
+          </Section>
         </>
       )}
     </div>

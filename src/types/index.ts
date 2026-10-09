@@ -24,6 +24,7 @@ export {
 
 export {
   ANALYSIS_OPERATIONS,
+  PROBABILITY_OPERATION,
   type AnalysisOperation,
   type Analysis,
   type AnalysisStats,

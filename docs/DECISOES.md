@@ -100,6 +100,31 @@ melhorou justamente nas tentativas em que nada aconteceu.
 **O que isso custa.** A amostra fica menor que o número de ocorrências da origem. Por
 isso o tamanho da amostra é mostrado sempre ao lado do resultado.
 
+## Na probabilidade, a origem sem destino conta
+
+Na probabilidade condicional, uma origem que não teve o destino entra no denominador —
+o contrário do que acontece nas análises de tempo.
+
+**Por quê.** A pergunta é outra. Na latência, *quanto tempo levou* não existe quando
+nada veio; na probabilidade, *não veio* é exatamente metade da resposta. Descartar essas
+origens daria 100% sempre.
+
+**O que isso custa.** É preciso definir um limite — tempo máximo ou "antes da próxima
+origem". Sem ele, qualquer destino que aparecesse minutos depois contaria como sucesso.
+
+## O cabeçalho pode ser corrigido, mas o original fica
+
+Os campos do cabeçalho podem ser editados, e o valor que veio no arquivo é guardado na
+primeira edição.
+
+**Por quê.** Cabeçalhos do MED-PC erram com frequência — sujeito digitado errado, data
+do relógio da caixa desacertada —, e a análise precisa sair com o dado certo. Mas um
+dado de pesquisa corrigido sem rastro deixa de ser auditável: quem lê a planilha precisa
+saber o que veio do equipamento e o que foi mudado à mão.
+
+**O que isso custa.** A planilha ganha colunas a mais no cabeçalho, e o selo *Editado*
+fica visível na análise enquanto houver diferença.
+
 ## A regressão trabalha com blocos de tempo
 
 A sessão é dividida em blocos de tamanho fixo e cada bloco vira uma observação.

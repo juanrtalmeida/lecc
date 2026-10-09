@@ -52,6 +52,23 @@ quando há muitos eventos parecidos.
 
 Para voltar a essa tela depois, use **Identificar eventos** no topo da análise.
 
+## Corrigindo o cabeçalho
+
+O cartão no alto da análise mostra o cabeçalho lido do arquivo: experimento, sujeito,
+data e hora, box, grupo e programa. Campos que o programa não conhece — como as
+variáveis `E: 0.000` — ficam em **Outros campos do arquivo**.
+
+Se algo veio errado (sujeito trocado, data do relógio da caixa), use **Editar
+cabeçalho**:
+
+- altere o valor de qualquer campo, remova um campo (×) ou crie um novo (**+ Campo**);
+- dois campos com o mesmo nome não são aceitos;
+- um campo conhecido deixado vazio sai do cabeçalho.
+
+Na primeira edição, o cabeçalho **original do arquivo é guardado**. A partir daí o cartão
+mostra o selo *Editado* e, sob cada campo corrigido, o valor que estava no arquivo. A
+exportação leva as duas versões. Editar o cabeçalho não muda nenhum evento nem cálculo.
+
 ## Escolhendo a sessão
 
 Quando o arquivo tem mais de uma seção, aparece a barra **Sessão**, com uma opção por
@@ -136,8 +153,14 @@ Tudo o que vem abaixo obedece ao que foi definido no painel da linha do tempo.
   linha por nome ou código; ele não recorta a análise. A coluna `Δ` é a diferença para a
   **linha anterior visível**: com um único evento marcado, ela passa a ser o intervalo
   entre ocorrências dele.
-- **Análises próprias** — tempo entre dois eventos: escolha os eventos de origem e
-  destino, a direção da busca e a operação.
+A página é dividida em blocos — **Recorte**, **Visão geral**, **Eventos**, **Tempo entre
+eventos**, **Probabilidades**, **Regressão** e **Exportar** — e os atalhos no topo levam
+direto a cada um.
+
+- **Tempo entre eventos** — escolha os eventos de origem e destino, a direção da busca e
+  a operação.
+- **Probabilidades** — com que frequência um evento acontece depois (ou antes) de outro,
+  e a matriz de transição entre eventos consecutivos.
 - **Regressão linear** — divide a sessão em blocos de tempo e ajusta um modelo sobre as
   variáveis de cada bloco.
 - **Exportar** — CSV, JSON e XLSX.
@@ -170,6 +193,21 @@ Cada ocorrência da origem é pareada com a **primeira** ocorrência do destino 
 direção. Origens sem destino correspondente ficam de fora do cálculo — por isso o
 resultado vem sempre acompanhado do **tamanho da amostra**.
 
+## Probabilidades
+
+Servem para responder "depois de A, com que frequência vem B".
+
+1. Escolha a **origem** (ex.: resposta) e o **destino** (ex.: reforço).
+2. Escolha a direção: destino *depois* ou *antes* da origem.
+3. Defina o limite: **em até N segundos**, **sem outra ocorrência da origem no meio**, ou
+   os dois. Ex.: "reforço em até 5 s depois de uma resposta".
+
+O resultado é a porcentagem de origens que tiveram o destino, com `k/n` e o intervalo de
+confiança de 95%. Abaixo, a **matriz de transição** mostra, para cada evento, a chance de
+cada outro ser o imediatamente seguinte — compare com a linha *base* para ver sequências
+acima do acaso. Em **Eventos (x/y)** escolha quais eventos aparecem; as transições para
+os que ficaram de fora somam na coluna *outros*, e cada linha continua fechando 100%.
+
 ## Regressão linear
 
 A sessão é dividida em **blocos de tempo** de largura escolhida por você, e cada bloco
@@ -191,10 +229,23 @@ Dois cuidados:
 | Formato | Conteúdo |
 | --- | --- |
 | CSV | uma linha por evento: tempo, tempo bruto, código, nome e categoria |
-| JSON | a análise inteira, com as identificações, as categorias e as análises salvas |
-| XLSX | abas separadas de cabeçalho, eventos, identificações e análises próprias |
+| JSON | a análise inteira, com as identificações, as categorias, as análises salvas e, se o cabeçalho foi editado, o original (`headerOriginal`) |
+| XLSX | uma aba para cada parte, descritas abaixo |
 
-A exportação respeita os filtros ativos: o que está na tela é o que sai no arquivo.
+Abas do XLSX:
+
+| Aba | Conteúdo |
+| --- | --- |
+| Header | cada campo do cabeçalho; nos editados, também o valor original e o tipo de mudança (*alterado*, *adicionado*, *removido*) |
+| Events | uma linha por evento |
+| Event Definitions | nome, categoria, cor e contagem de cada código |
+| Custom Analyses | as análises de tempo entre eventos, com o tamanho da amostra |
+| Probabilities | origem, destino, limites, `k`, `n`, `P` e o intervalo de 95% de Wilson |
+| Transitions | uma linha por par *atual → seguinte*: contagem, a probabilidade do seguinte dado o atual e a taxa de base |
+| Regressions | um modelo por bloco de linhas, uma por coeficiente |
+
+A exportação respeita os filtros ativos: o que está na tela é o que sai no arquivo —
+inclusive as análises e probabilidades, recalculadas sobre o recorte.
 
 O JSON é também a forma de **guardar uma cópia** da análise ou de levá-la para outro
 computador — as análises ficam no navegador desta máquina, e limpar os dados do navegador

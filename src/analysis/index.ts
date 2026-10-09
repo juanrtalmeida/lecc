@@ -13,8 +13,15 @@ export {
   count,
   meanInterval,
   stdev,
+  wilsonInterval,
   applyOperation,
 } from './statsFunctions';
+export {
+  conditionalProbability,
+  transitionMatrix,
+  type TransitionMatrix,
+} from './probability';
+export { headerChanges, type HeaderChange, type HeaderChangeKind } from './header';
 export { resolveCustomAnalysis, recomputeAllCustom } from './customAnalysis';
 export {
   listSessions,

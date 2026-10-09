@@ -18,6 +18,12 @@ export interface Analysis {
   createdAt: string; // ISO timestamp
   updatedAt: string; // ISO timestamp
   header: Record<string, string>;
+  /**
+   * Cabeçalho como veio do arquivo, guardado na primeira edição manual. Ausente
+   * = nunca editado (inclui análises antigas). Serve para a exportação mostrar
+   * o que foi corrigido.
+   */
+  headerOriginal?: Record<string, string>;
   /** Definições indexadas pelo code (number). */
   eventDefinitions: Record<number, EventDefinition>;
   /**
@@ -59,7 +65,15 @@ export const ANALYSIS_OPERATIONS = [
   'Desvio padrão',
 ] as const;
 
-export type AnalysisOperation = (typeof ANALYSIS_OPERATIONS)[number];
+/**
+ * "Probabilidade" fica fora da lista acima: não agrega tempos, conta quantas
+ * origens tiveram o destino. Tem bloco próprio na tela.
+ */
+export const PROBABILITY_OPERATION = 'Probabilidade';
+
+export type AnalysisOperation =
+  | (typeof ANALYSIS_OPERATIONS)[number]
+  | typeof PROBABILITY_OPERATION;
 
 /**
  * Tipo de busca do evento destino:
@@ -90,16 +104,30 @@ export interface CustomAnalysis {
   /** Para "from→to": direção temporal em que o "to" é buscado. */
   directionAfter: DirectionAfter;
   operation: AnalysisOperation;
+  /**
+   * Só para "Probabilidade": o destino conta se ocorrer em até N segundos da
+   * origem. Ausente = sem limite de tempo.
+   */
+  windowSeconds?: number;
+  /**
+   * Só para "Probabilidade": o destino conta só se vier antes da próxima
+   * origem (ou depois da anterior, na direção "previous").
+   */
+  untilNextFrom?: boolean;
   /** Resultado cacheado (recalculado a cada edição na própria análise). */
   result?: number;
-  /** Quantos pares contribuíram para o cálculo. */
+  /** Quantos pares contribuíram para o cálculo (em "Probabilidade": quantas origens). */
   sampleSize?: number;
+  /** Só para "Probabilidade": quantas origens tiveram o destino. */
+  successes?: number;
   createdAt: string;
 }
 
 export interface CustomAnalysisResult {
   value: number | null;
   sampleSize: number;
+  /** Só para "Probabilidade": quantas origens tiveram o destino. */
+  successes?: number;
   /** Indica por que está vazio (sem pares, sem eventos, etc.). Sem erro — só contexto. */
   emptyReason?: string;
 }

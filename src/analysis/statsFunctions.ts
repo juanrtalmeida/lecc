@@ -61,6 +61,19 @@ export function stdev(values: number[]): number | null {
   return Math.sqrt(variance);
 }
 
+/**
+ * Intervalo de confiança de Wilson (95%) para uma proporção k/n. Melhor que o
+ * de Wald com n pequeno ou p perto de 0/1 — o caso comum em sessões curtas.
+ */
+export function wilsonInterval(k: number, n: number, z = 1.96): [number, number] | null {
+  if (n <= 0) return null;
+  const p = k / n;
+  const z2 = z * z;
+  const center = (p + z2 / (2 * n)) / (1 + z2 / n);
+  const half = (z / (1 + z2 / n)) * Math.sqrt((p * (1 - p)) / n + z2 / (4 * n * n));
+  return [Math.max(0, center - half), Math.min(1, center + half)];
+}
+
 import type { AnalysisOperation } from '@/types';
 
 export function applyOperation(
@@ -85,5 +98,8 @@ export function applyOperation(
       return meanInterval(values);
     case 'Desvio padrão':
       return stdev(values);
+    case 'Probabilidade':
+      // Não agrega tempos — resolvida em probability.ts.
+      return null;
   }
 }
